@@ -1,15 +1,15 @@
 import { Star, Smile, AlertTriangle, MessageSquare } from 'lucide-react';
 
-export default function MetricCards({ feedbacks, onFilterSentiment, activeSentimentFilter }) {
-  const total = feedbacks.length;
+export default function MetricCards({ feedbacks, metrics, onFilterSentiment, activeSentimentFilter }) {
+  const total = metrics?.total ?? metrics?.total_feedbacks ?? metrics?.totalFeedbacks ?? feedbacks.length;
+  const avgStarsValue = metrics?.avg_stars ?? metrics?.average_stars ?? metrics?.averageStars;
+  const positiveCount = metrics?.positive_count ?? metrics?.positiveFeedbacks ?? feedbacks.filter((f) => f.sentimento === 'positivo').length;
+  const negativeCount = metrics?.negative_count ?? metrics?.negativeFeedbacks ?? feedbacks.filter((f) => f.sentimento === 'negativo').length;
+  const satisfactionRate = metrics?.satisfaction_rate ?? metrics?.satisfactionRate ?? (total > 0 ? Math.round((positiveCount / total) * 100) : 0);
   const totalStars = feedbacks.reduce((acc, curr) => acc + curr.estrelas, 0);
-  const avgStars = total > 0 ? (totalStars / total).toFixed(1) : '0';
+  const avgStars = avgStarsValue ?? (total > 0 ? (totalStars / total).toFixed(1) : '0');
 
-  const positiveCount = feedbacks.filter((f) => f.sentimento === 'positivo').length;
-  const negativeCount = feedbacks.filter((f) => f.sentimento === 'negativo').length;
-  const satisfactionRate = total > 0 ? Math.round((positiveCount / total) * 100) : 0;
-
-  const metrics = [
+  const metricCards = [
     {
       id: 'total',
       title: 'Total de Avaliações',
@@ -54,7 +54,7 @@ export default function MetricCards({ feedbacks, onFilterSentiment, activeSentim
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      {metrics.map((m) => {
+      {metricCards.map((m) => {
         const Icon = m.icon;
         const isClickable = !!m.action;
 
