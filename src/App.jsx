@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { initialFeedbacksList } from './data/mockFeedbacks.js';
+import { useEffect, useState } from 'react';
 import MetricCards from './components/MetricCards.jsx';
 import ChartsSection from './components/ChartsSection.jsx';
 import FeedbackTable from './components/FeedbackTable.jsx';
 import N8nWorkflowVisualizer from './components/N8nWorkflowVisualizer.jsx';
 import SimulatorSection from './components/SimulatorSection.jsx';
 import { Network, RefreshCw, Layers, CheckCircle2 } from 'lucide-react';
+import { getFeedbacks, getMetrics } from './services/api.js';
 
 export default function App() {
-  const [feedbacks, setFeedbacks] = useState(initialFeedbacksList);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [metrics, setMetrics] = useState(null);
   const [activeTab, setActiveTab] = useState('simulator');
   const [selectedSentiment, setSelectedSentiment] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -16,10 +17,34 @@ export default function App() {
   const [simInput, setSimInput] = useState(null);
   const [simResult, setSimResult] = useState(null);
 
+  const loadDashboardData = async () => {
+    try {
+      const [feedbackData, metricData] = await Promise.all([getFeedbacks(), getMetrics()]);
+
+      if (Array.isArray(feedbackData)) {
+        setFeedbacks(feedbackData);
+      }
+
+      setMetrics(Array.isArray(metricData) ? metricData[0] ?? null : metricData ?? null);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+
+    const interval = setInterval(() => {
+      loadDashboardData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleResetData = () => {
-    if (window.confirm('Deseja redefinir os dados para o padrão inicial do MySQL?')) {
-      setFeedbacks(initialFeedbacksList);
+    if (window.confirm('Deseja recarregar os dados reais do webhook?')) {
       setSelectedSentiment(null);
+      loadDashboardData();
     }
   };
 
@@ -260,6 +285,7 @@ export default function App() {
           <div className="space-y-6">
             <MetricCards
               feedbacks={feedbacks}
+              metrics={metrics}
               onFilterSentiment={(sentiment) => {
                 setSelectedSentiment(sentiment);
                 setActiveTab('database');

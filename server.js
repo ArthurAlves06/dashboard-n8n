@@ -12,8 +12,42 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const N8N_BASE = 'https://nonebulliently-astomatous-reta.ngrok-free.dev/webhook';
 
   app.use(express.json());
+
+  async function proxyJson(targetPath, res) {
+    const response = await fetch(`${N8N_BASE}${targetPath}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar ${targetPath}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  }
+
+  app.get('/api/feedbacks', async (_req, res) => {
+    try {
+      await proxyJson('/dashboard-feedbacks', res);
+    } catch (err) {
+      console.error('API feedbacks proxy error:', err);
+      res.status(500).json({ error: err?.message || 'Erro ao buscar feedbacks' });
+    }
+  });
+
+  app.get('/api/metrics', async (_req, res) => {
+    try {
+      await proxyJson('/dashboard-metrics', res);
+    } catch (err) {
+      console.error('API metrics proxy error:', err);
+      res.status(500).json({ error: err?.message || 'Erro ao buscar métricas' });
+    }
+  });
 
   app.post('/api/analyze-feedback', async (req, res) => {
     try {
