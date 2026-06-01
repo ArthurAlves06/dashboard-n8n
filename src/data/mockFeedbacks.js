@@ -9,14 +9,14 @@ export const studentProfiles = {
 };
 
 export const defaultReplyTemplates = {
-  positivo: (name) =>
-    `Olá ${name}! Muito obrigado pelo seu feedback positivo sobre a aula. Ficamos muito felizes em saber que você gostou ! Seu comentário ajuda nossa equipe de ensino a continuar trazendo os melhores conteúdos. Ótimos estudos! 📚🚀`,
+  positivo: (name, estrelas = 0) =>
+    `Olá, ${name}! Muito obrigado pelo seu feedback positivo! Sentimento detectado: *Positivo* (${estrelas} estrela(s)). Continuaremos trabalhando para manter a qualidade. Obrigado!☺️`,
 
-  neutro: (name) =>
-    `Olá ${name}, obrigado por avaliar a aula de hoje. Registramos suas observações e vamos usá-las para aprimorar os próximos módulos. Continue firme nos estudos! 👍`,
+  neutro: (name, estrelas = 0) =>
+    `Olá, ${name}! Recebemos seu feedback. Sentimento detectado: *Neutro* (${estrelas} estrela(s)). Obrigado por participar. Sua opinião nos ajuda a melhorar!☺️`,
 
-  negativo: (name) =>
-    `Olá ${name}, sentimos muito que a sua experiência com a aula de hoje não tenha sido a melhor. 💔 Passamos o seu feedback de forma prioritária para o professor e coordenação revisarem o material e abordagem imediatamente. Queremos muito te ajudar a aprender o conteúdo, conte conosco! Se quiser compartilhar mais detalhes, pode responder diretamente aqui.`,
+  negativo: (name, estrelas = 0) =>
+    `Olá, ${name}! Recebemos seu feedback. Identificamos que você está enfrentando dificuldades. Sentimento detectado: *Negativo* (${estrelas} estrela(s)). O professor foi notificado e entrará em contato em breve. Obrigado por nos avisar!`,
 };
 
 export const defaultEmailToProfessor = (name, number, stars, msg, date) => ({
@@ -36,7 +36,7 @@ export const initialFeedbacksList = [
     acao: 'ELOGIO',
     data_envio: '2026-05-18 15:11:21',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.positivo('Arthur Alves'),
+    whatsapp_reply: defaultReplyTemplates.positivo('Arthur Alves', 4),
   },
   {
     id: 122,
@@ -48,7 +48,7 @@ export const initialFeedbacksList = [
     acao: 'ELOGIO',
     data_envio: '2026-05-18 15:13:44',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.positivo('Carlos Eduardo Silva'),
+    whatsapp_reply: defaultReplyTemplates.positivo('Carlos Eduardo Silva', 4),
   },
   {
     id: 123,
@@ -63,7 +63,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Carlos Eduardo Silva',
     email_body: defaultEmailToProfessor('Carlos Eduardo Silva', '5541999389379', 1, 'O áudio estava horrível hoje, cortou no meio da explicação da arquitetura.', '2026-05-18 17:25:05').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva', 1),
   },
   {
     id: 124,
@@ -78,7 +78,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Carlos Eduardo Silva',
     email_body: defaultEmailToProfessor('Carlos Eduardo Silva', '5541999389379', 1, 'Não consegui fazer o laboratório de banco de dados, o link estava fora do ar.', '2026-05-18 17:34:39').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva', 1),
   },
   {
     id: 125,
@@ -93,7 +93,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Carlos Eduardo Silva',
     email_body: defaultEmailToProfessor('Carlos Eduardo Silva', '5541999389379', 1, 'Senti muita falta de exemplos sobre como criar a rota do webhook.', '2026-05-18 17:34:39').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva', 1),
   },
   {
     id: 126,
@@ -108,7 +108,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Carlos Eduardo Silva',
     email_body: defaultEmailToProfessor('Carlos Eduardo Silva', '5541999389379', 1, 'Fiquei preso no passo 3 e ninguém me respondeu no chat de ajuda.', '2026-05-18 17:35:55').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva', 1),
   },
   {
     id: 127,
@@ -123,7 +123,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Carlos Eduardo Silva',
     email_body: defaultEmailToProfessor('Carlos Eduardo Silva', '5541999389379', 1, 'Código de exemplo do professor deu erro de importação no typescript.', '2026-05-18 17:35:55').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Carlos Eduardo Silva', 1),
   },
   {
     id: 128,
@@ -168,7 +168,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Marina Santos',
     email_body: defaultEmailToProfessor('Marina Santos', '554188467531', 1, 'Achei o conteúdo do slide um pouco confuso para quem é iniciante total.', '2026-05-18 18:56:09').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Marina Santos'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Marina Santos', 1),
   },
   {
     id: 131,
@@ -180,7 +180,7 @@ export const initialFeedbacksList = [
     acao: 'NEUTRO',
     data_envio: '2026-05-18 18:00:00',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.neutro('Marina Santos'),
+    whatsapp_reply: defaultReplyTemplates.neutro('Marina Santos', 3),
   },
   {
     id: 132,
@@ -192,7 +192,7 @@ export const initialFeedbacksList = [
     acao: 'ELOGIO',
     data_envio: '2026-05-18 19:30:48',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.positivo('Marina Santos'),
+    whatsapp_reply: defaultReplyTemplates.positivo('Marina Santos', 4),
   },
   {
     id: 133,
@@ -207,7 +207,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Marina Santos',
     email_body: defaultEmailToProfessor('Marina Santos', '554188467531', 1, 'A parte prática do servidor Express ficou sem explicação detalhada do express.json().', '2026-05-18 19:53:50').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Marina Santos'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Marina Santos', 1),
   },
   {
     id: 134,
@@ -219,7 +219,7 @@ export const initialFeedbacksList = [
     acao: 'ELOGIO',
     data_envio: '2026-05-19 10:15:00',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.positivo('Beatriz Lima'),
+    whatsapp_reply: defaultReplyTemplates.positivo('Beatriz Lima', 5),
   },
   {
     id: 135,
@@ -231,7 +231,7 @@ export const initialFeedbacksList = [
     acao: 'NEUTRO',
     data_envio: '2026-05-19 11:45:12',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.neutro('Lucas Oliveira'),
+    whatsapp_reply: defaultReplyTemplates.neutro('Lucas Oliveira', 3),
   },
   {
     id: 136,
@@ -246,7 +246,7 @@ export const initialFeedbacksList = [
     email_to_professor: 'professor.coord@escola.com.br',
     email_subject: '🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: Rafael Costa',
     email_body: defaultEmailToProfessor('Rafael Costa', '5521991823746', 2, 'Faltou disponibilizar os códigos prontos antes de começar o exercício da API.', '2026-05-20 14:20:00').body,
-    whatsapp_reply: defaultReplyTemplates.negativo('Rafael Costa'),
+    whatsapp_reply: defaultReplyTemplates.negativo('Rafael Costa', 2),
   },
   {
     id: 137,
@@ -258,7 +258,7 @@ export const initialFeedbacksList = [
     acao: 'ELOGIO',
     data_envio: '2026-05-20 16:10:00',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.positivo('Arthur Alves'),
+    whatsapp_reply: defaultReplyTemplates.positivo('Arthur Alves', 5),
   },
   {
     id: 138,
@@ -270,6 +270,6 @@ export const initialFeedbacksList = [
     acao: 'ELOGIO',
     data_envio: '2026-05-21 09:30:00',
     email_sent: false,
-    whatsapp_reply: defaultReplyTemplates.positivo('Ana Paula Souza'),
+    whatsapp_reply: defaultReplyTemplates.positivo('Ana Paula Souza', 5),
   },
 ];

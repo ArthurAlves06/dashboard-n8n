@@ -1,41 +1,23 @@
 import { Webhook, Database, Mail, Split, Globe, Code } from 'lucide-react';
 
-export default function N8nWorkflowVisualizer({ activeStep = 0, simulationInput = null, simulationResult = null }) {
-  const nodeClass = (step) => (activeStep >= step ? 'border-purple-300 shadow-md shadow-purple-100' : 'border-slate-200');
+export default function N8nWorkflowVisualizer() {
+  const nodeClass = () => 'border-purple-300 shadow-md shadow-purple-100';
 
   return (
     <div className="bg-white text-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 mb-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1.5px,transparent_1.5px),linear-gradient(to_bottom,#f1f5f9_1.5px,transparent_1.5px)] bg-[size:3.5rem_3.5rem] opacity-60"></div>
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-100 pb-4 mb-6">
-        <div>
-          <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-100 font-bold uppercase tracking-wider">VISUALIZAÇÃO DE ARQUITETURA</span>
-          <h4 className="text-base font-black font-sans text-slate-900 mt-1">Sua Automação de Produção no n8n</h4>
-          <p className="text-xs text-slate-500 font-medium font-sans">Esta é a reprodução exata dos nós de integrações ativos no seu fluxo</p>
-        </div>
-        <div className="mt-3 md:mt-0 flex flex-col items-start md:items-end gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+          <div>
+            <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-100 font-bold uppercase tracking-wider">VISUALIZAÇÃO DE ARQUITETURA</span>
+            <h4 className="text-base font-black font-sans text-slate-900 mt-1">Sua Automação de Produção no n8n</h4>
+            <p className="text-xs text-slate-500 font-medium font-sans">Mapa visual dos nós ativos no workflow conectado ao dashboard</p>
+          </div>
+          <div className="mt-3 md:mt-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Fluxograma Ativo no Servidor</span>
+            <span>Fluxograma Ativo</span>
           </div>
-          <div className="text-[11px] text-slate-500">
-            Passo atual: <span className="font-bold text-slate-800">{activeStep || 0}</span>
-          </div>
-        </div>
       </div>
-
-      {(simulationInput || simulationResult) && (
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-3 mb-5 text-xs">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="font-bold uppercase tracking-wider text-slate-400 mb-1">Entrada</div>
-            <div className="text-slate-700 break-words">{simulationInput ? `${simulationInput.whatsapp_name} • ${simulationInput.estrelas ?? 'n/a'} estrelas` : 'Aguardando simulação'}</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="font-bold uppercase tracking-wider text-slate-400 mb-1">Resultado</div>
-            <div className="text-slate-700 break-words">{simulationResult ? `${simulationResult.sentimento?.toUpperCase()} • ${simulationResult.acao}` : 'Nenhum resultado ainda'}</div>
-          </div>
-        </div>
-      )}
 
       <div className="relative z-10 overflow-x-auto pb-4 select-none scrollbar-thin">
         <div className="relative h-[290px] w-[1245px] mx-auto">
@@ -105,14 +87,14 @@ export default function N8nWorkflowVisualizer({ activeStep = 0, simulationInput 
             <div className="text-[9px] font-mono text-sky-600 bg-sky-50 rounded px-1.5 py-0.5 font-bold self-start leading-none uppercase">insert DB</div>
           </div>
 
-          <div style={{ left: '820px', top: '110px' }} className={`absolute w-[80px] h-[60px] bg-white border-2 rounded-lg p-1.5 flex flex-col items-center justify-center hover:border-emerald-500 shadow-sm transition-all text-center ${activeStep >= 6 ? 'border-emerald-400' : 'border-emerald-400'}`}>
+          <div style={{ left: '820px', top: '110px' }} className="absolute w-[80px] h-[60px] bg-white border-2 border-emerald-400 rounded-lg p-1.5 flex flex-col items-center justify-center hover:border-emerald-500 shadow-sm transition-all text-center">
             <div className="text-emerald-700">
               <Split className="h-5 w-5 mb-0.5" />
             </div>
             <span className="text-xs font-extrabold text-slate-800">If</span>
           </div>
 
-          <div style={{ left: '940px', top: '24px' }} className={`absolute w-[125px] h-[72px] bg-white rounded-xl p-2 px-2.5 flex flex-col justify-between hover:border-emerald-300 shadow-sm transition-all text-left border ${nodeClass(7)}`}>
+          <div style={{ left: '940px', top: '24px' }} className={`absolute w-[125px] h-[72px] bg-white rounded-xl p-2 px-2.5 flex flex-col justify-between hover:border-emerald-300 shadow-sm transition-all text-left border ${nodeClass()}`}>
             <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500">
                 <Mail className="h-4 w-4" />
@@ -122,7 +104,7 @@ export default function N8nWorkflowVisualizer({ activeStep = 0, simulationInput 
             <div className="text-[9px] font-mono text-rose-600 bg-rose-50 rounded px-1.5 py-0.5 font-bold self-start leading-none uppercase">send</div>
           </div>
 
-          <div style={{ left: '1100px', top: '24px' }} className={`absolute w-[125px] h-[72px] bg-white rounded-xl p-2 px-2.5 flex flex-col justify-between hover:border-emerald-300 shadow-sm transition-all text-left border ${nodeClass(8)}`}>
+          <div style={{ left: '1100px', top: '24px' }} className={`absolute w-[125px] h-[72px] bg-white rounded-xl p-2 px-2.5 flex flex-col justify-between hover:border-emerald-300 shadow-sm transition-all text-left border ${nodeClass()}`}>
             <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
                 <Globe className="h-4 w-4" />
@@ -132,7 +114,7 @@ export default function N8nWorkflowVisualizer({ activeStep = 0, simulationInput 
             <div className="text-[8px] font-mono text-indigo-600 bg-indigo-50 rounded px-1 py-0.5 font-bold self-start leading-none truncate max-w-full">POST: Port 808...</div>
           </div>
 
-          <div style={{ left: '940px', top: '184px' }} className={`absolute w-[125px] h-[72px] bg-white rounded-xl p-2 px-2.5 flex flex-col justify-between hover:border-purple-300 shadow-sm transition-all text-left border ${nodeClass(7)}`}>
+          <div style={{ left: '940px', top: '184px' }} className={`absolute w-[125px] h-[72px] bg-white rounded-xl p-2 px-2.5 flex flex-col justify-between hover:border-purple-300 shadow-sm transition-all text-left border ${nodeClass()}`}>
             <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
                 <Globe className="h-4 w-4" />
