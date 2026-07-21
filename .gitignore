@@ -7,19 +7,43 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependency directories
+node_modules/
+
+# Build and production output
+dist/
+dist-ssr/
+build/
+
+# Environment variables & secrets (CRÍTICO: Nunca subir para o GitHub!)
+.env
+!.env.example
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+firebase-adminsdk*.json
+*-credentials.json
+
+# Local configurations
 *.local
 
-# Editor directories and files
-.vscode/*
+# Firebase & Deployment local caches
+.firebase/
+.firebase/*
+firebase-debug.log*
+firestore-debug.log*
+
+# Editor & OS directories/files
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-*.env
