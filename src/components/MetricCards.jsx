@@ -53,7 +53,7 @@ export default function MetricCards({ feedbacks, metrics, onFilterSentiment, act
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-5 mb-8">
       {metricCards.map((m) => {
         const Icon = m.icon;
         const isClickable = !!m.action;
@@ -63,19 +63,27 @@ export default function MetricCards({ feedbacks, metrics, onFilterSentiment, act
             key={m.id}
             id={`metric-card-${m.id}`}
             onClick={() => m.action && m.action()}
-            className={`p-5 rounded-2xl border transition-all duration-200 bg-white ${
-              isClickable ? 'cursor-pointer hover:border-purple-300 hover:shadow-md hover:scale-[1.01]' : ''
-            } ${m.active ? 'ring-2 ring-purple-600 border-purple-300 bg-purple-50/10' : 'shadow-sm border-slate-200'}`}
+            className={`group relative overflow-hidden rounded-2xl border bg-white p-5 transition-all duration-200 ${
+              isClickable ? 'cursor-pointer hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-lg active:scale-[0.99]' : ''
+            } ${m.active ? 'border-purple-300 bg-purple-50/30 ring-2 ring-purple-600/20 shadow-lg shadow-purple-500/10' : 'border-slate-200 shadow-sm'}`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{m.title}</span>
-              <div className={`p-2 rounded-lg border ${m.color.split(' ')[1]} ${m.color.split(' ')[2]}`}>
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-purple-300/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">{m.title}</span>
+                <p className="mt-1 text-[11px] font-medium text-slate-400">{m.sub}</p>
+              </div>
+              <div className={`rounded-xl border p-2.5 ${m.color.split(' ')[1]} ${m.color.split(' ')[2]}`}>
                 <Icon className={`h-4.5 w-4.5 ${m.color.split(' ')[0]}`} />
               </div>
             </div>
-            <div>
-              <h3 className="text-3xl font-black font-sans text-slate-900 tracking-tight">{m.value}</h3>
-              <p className="text-xs text-slate-500 mt-1">{m.sub}</p>
+
+            <div className="space-y-2">
+              <h3 className="text-3xl sm:text-[2rem] font-black font-sans text-slate-900 tracking-tight">{m.value}</h3>
+              <div className="h-1.5 w-20 rounded-full bg-slate-100 overflow-hidden">
+                <div className={`h-full w-1/2 rounded-full ${m.active ? 'bg-purple-500' : 'bg-slate-300'} transition-colors`} />
+              </div>
             </div>
           </div>
         );

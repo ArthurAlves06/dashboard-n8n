@@ -1,18 +1,86 @@
 import { useState } from 'react';
-import { defaultReplyTemplates } from '../data/mockFeedbacks.js';
-import { Search, FileDown, Eye, Mail, MessageSquare, Star, ArrowUpDown, X, Phone, Calendar, Trash } from 'lucide-react';
 
-export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSentiment, onClearSentiment }) {
+// Templates de resposta usados como fallback quando whatsapp_reply não vem preenchido
+const defaultReplyTemplates = {
+  positivo: (name, estrelas = 0) =>
+    `Olá, ${name}! Muito obrigado pelo seu feedback positivo! Sentimento detectado: *Positivo* (${estrelas} estrela(s)). Continuaremos trabalhando para manter a qualidade. Obrigado!☺️`,
+  neutro: (name, estrelas = 0) =>
+    `Olá, ${name}! Recebemos seu feedback. Sentimento detectado: *Neutro* (${estrelas} estrela(s)). Obrigado por participar. Sua opinião nos ajuda a melhorar!☺️`,
+  negativo: (name, estrelas = 0) =>
+    `Olá, ${name}! Recebemos seu feedback. Identificamos que você está enfrentando dificuldades. Sentimento detectado: *Negativo* (${estrelas} estrela(s)). O professor foi notificado e entrará em contato em breve. Obrigado por nos avisar!`,
+};
+
+// Mascara número para proteção de dados (portfólio)
+// Ex: "5541999389379" → "55 ••••• ••379"
+function maskPhone(num) {
+  const s = String(num ?? '');
+  if (!s || s.length < 4) return '••••••';
+  const visible = s.slice(-3);
+  return s.slice(0, 2) + ' ••••• ••' + visible;
+}
+
+// Mascara nome completo para proteção de dados (portfólio)
+// Ex: "Weslley L. Kampa" → "Weslley K."
+function maskName(name) {
+  const s = String(name ?? '').trim();
+  if (!s || s === 'Sem nome') return s;
+  const parts = s.split(' ').filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  return parts[0] + ' ' + parts[parts.length - 1][0] + '.';
+}
+
+import { Search, FileDown, Eye, Mail, MessageSquare, Star, ArrowUpDown, X, Phone, Calendar, Trash, SlidersHorizontal } from 'lucide-react';
+
+export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSentiment, onClearSentiment, onFilterSentiment }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [sortField, setSortField] = useState('data_envio');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [selectedStarFilter, setSelectedStarFilter] = useState(null);
+  const [selectedActionFilter, setSelectedActionFilter] = useState(null);
+  const [selectedContentFilter, setSelectedContentFilter] = useState('all');
+
+  const sentimentOptions = [
+    { key: null, label: 'Todos', count: feedbacks.length },
+    { key: 'positivo', label: 'Positivas', count: feedbacks.filter((f) => f.sentimento === 'positivo').length },
+    { key: 'neutro', label: 'Neutras', count: feedbacks.filter((f) => f.sentimento === 'neutro').length },
+    { key: 'negativo', label: 'Negativas', count: feedbacks.filter((f) => f.sentimento === 'negativo').length },
+  ];
+
+  const actionOptions = [
+    { key: null, label: 'Todas' },
+    { key: 'ELOGIO', label: 'ELOGIO' },
+    { key: 'NEUTRO', label: 'NEUTRO' },
+    { key: 'ALERTA', label: 'ALERTA' },
+  ];
+
+  const contentOptions = [
+    { key: 'all', label: 'Tudo' },
+    { key: 'text', label: 'Com texto' },
+    { key: 'stars', label: 'Só estrelas' },
+  ];
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSelectedStarFilter(null);
+    setSelectedActionFilter(null);
+    setSelectedContentFilter('all');
+    onClearSentiment?.();
+  };
 
   const filteredFeedbacks = feedbacks.filter((f) => {
     const term = searchTerm.toLowerCase();
-    const matchesSearch = f.whatsapp_name.toLowerCase().includes(term) || f.whatsapp_number.includes(term) || (f.mensagem && f.mensagem.toLowerCase().includes(term));
+    const whatsappName = String(f.whatsapp_name ?? '').toLowerCase();
+    const whatsappNumber = String(f.whatsapp_number ?? '');
+    const mensagem = String(f.mensagem ?? '').toLowerCase();
+    const matchesSearch = whatsappName.includes(term) || whatsappNumber.includes(term) || mensagem.includes(term);
     const matchesSentiment = selectedSentiment ? f.sentimento === selectedSentiment : true;
-    return matchesSearch && matchesSentiment;
+    const matchesStar = selectedStarFilter ? f.estrelas === selectedStarFilter : true;
+    const matchesAction = selectedActionFilter ? f.acao === selectedActionFilter : true;
+    const matchesContent =
+      selectedContentFilter === 'text' ? !!String(f.mensagem ?? '').trim() : selectedContentFilter === 'stars' ? !String(f.mensagem ?? '').trim() : true;
+
+    return matchesSearch && matchesSentiment && matchesStar && matchesAction && matchesContent;
   });
 
   const sortedFeedbacks = [...filteredFeedbacks].sort((a, b) => {
@@ -20,7 +88,9 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
     const rawB = b[sortField];
 
     if (sortField === 'data_envio') {
-      return sortOrder === 'desc' ? rawB.localeCompare(rawA) : rawA.localeCompare(rawB);
+      const dateA = String(rawA ?? '');
+      const dateB = String(rawB ?? '');
+      return sortOrder === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
     }
 
     if (typeof rawA === 'number' && typeof rawB === 'number') {
@@ -43,8 +113,8 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
     const headers = 'id,whatsapp_number,whatsapp_name,mensagem,estrelas,sentimento,acao,data_envio\n';
     const rows = feedbacks
       .map((f) => {
-        const cleanMsg = f.mensagem ? f.mensagem.replace(/"/g, '""').replace(/\n/g, ' ') : '';
-        return `${f.id},${f.whatsapp_number},"${f.whatsapp_name}","${cleanMsg}",${f.estrelas},${f.sentimento},${f.acao},"${f.data_envio}"`;
+        const cleanMsg = String(f.mensagem ?? '').replace(/"/g, '""').replace(/\n/g, ' ');
+        return `${f.id},${maskPhone(f.whatsapp_number)},"${maskName(f.whatsapp_name)}","${cleanMsg}",${f.estrelas ?? ''},${f.sentimento ?? ''},${f.acao ?? ''},"${f.data_envio ?? ''}"`;
       })
       .join('\n');
 
@@ -68,10 +138,113 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={handleExportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-all shadow-sm active:scale-95 cursor-pointer">
+            <button onClick={handleExportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white text-xs font-semibold text-slate-700 transition-all duration-200 ease-out shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 cursor-pointer">
               <FileDown className="h-3.5 w-3.5" />
               <span>Exportar MySQL CSV</span>
             </button>
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+              <SlidersHorizontal className="h-4 w-4 text-purple-600" />
+              Filtros rápidos
+            </div>
+            <button onClick={clearAllFilters} className="self-start sm:self-auto px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:text-purple-700 hover:border-purple-200 transition-all duration-200 ease-out cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95">
+              Limpar filtros
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 block mb-2">Tipo de mensagem</span>
+              <div className="flex flex-wrap gap-2">
+                {sentimentOptions.map((option) => {
+                  const active = selectedSentiment === option.key || (!selectedSentiment && option.key === null);
+                  return (
+                    <button
+                      key={String(option.key ?? 'all')}
+                      onClick={() => onFilterSentiment?.(option.key)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-sm active:scale-95 ${
+                        active ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-purple-200 hover:text-purple-700 hover:bg-purple-50/60'
+                      }`}
+                    >
+                      {option.label} <span className="opacity-70">({option.count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 block mb-2">Estrelas</span>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const active = selectedStarFilter === star;
+                    return (
+                      <button
+                        key={star}
+                        onClick={() => setSelectedStarFilter(active ? null : star)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-sm active:scale-95 ${
+                          active ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-200 hover:text-amber-700 hover:bg-amber-50/60'
+                        }`}
+                      >
+                        {star} ★
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 block mb-2">Ação (n8n)</span>
+                <div className="flex flex-wrap gap-2">
+                  {actionOptions.map((option) => {
+                    const active = selectedActionFilter === option.key;
+                    return (
+                      <button
+                        key={String(option.key ?? 'all')}
+                        onClick={() => setSelectedActionFilter(active ? null : option.key)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-sm active:scale-95 ${
+                          active ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900 hover:bg-slate-50'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 block mb-2">Conteúdo da mensagem</span>
+              <div className="flex flex-wrap gap-2">
+                {contentOptions.map((option) => {
+                  const active = selectedContentFilter === option.key;
+                  return (
+                    <button
+                      key={option.key}
+                      onClick={() => setSelectedContentFilter(option.key)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 hover:shadow-sm active:scale-95 ${
+                        active ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-200 hover:text-emerald-700 hover:bg-emerald-50/60'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+              <span>
+                Exibindo <b>{filteredFeedbacks.length}</b> de <b>{feedbacks.length}</b> registros
+              </span>
+              <span className="font-medium">Combine filtros para encontrar padrões mais rápido.</span>
+            </div>
           </div>
         </div>
 
@@ -145,8 +318,8 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                       <td className="p-3.5 font-mono text-slate-400 font-extrabold">{f.id}</td>
                       <td className="p-3.5">
                         <div>
-                          <div className={`font-bold leading-tight ${isActive ? 'text-purple-800' : 'text-slate-800'}`}>{f.whatsapp_name}</div>
-                          <div className="text-[10px] text-slate-500 font-mono tracking-wider mt-0.5">+{f.whatsapp_number}</div>
+                          <div className={`font-bold leading-tight ${isActive ? 'text-purple-800' : 'text-slate-800'}`}>{maskName(f.whatsapp_name) ?? 'Sem nome'}</div>
+                          <div className="text-[10px] text-slate-500 font-mono tracking-wider mt-0.5">{maskPhone(f.whatsapp_number)}</div>
                         </div>
                       </td>
                       <td className="p-3.5 max-w-[180px] truncate italic text-slate-600" title={f.mensagem}>
@@ -168,17 +341,12 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                           {f.acao}
                         </span>
                       </td>
-                      <td className="p-3.5 text-slate-500 font-mono whitespace-nowrap">{f.data_envio}</td>
+                      <td className="p-3.5 text-slate-500 font-mono whitespace-nowrap">{f.data_envio ?? '-'}</td>
                       <td className="p-3.5 text-right font-semibold" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setSelectedFeedback(f)} className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-purple-600 transition-colors cursor-pointer" title="Visualizar Respostas Executadas">
+                          <button onClick={() => setSelectedFeedback(f)} className="p-1 rounded text-slate-500 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95" title="Visualizar Respostas Executadas">
                             <Eye className="h-4 w-4" />
                           </button>
-                          {onRemoveFeedback && (
-                            <button onClick={() => onRemoveFeedback(f.id)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-rose-600 transition-colors cursor-pointer" title="Deletar Registro">
-                              <Trash className="h-4 w-4" />
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -201,7 +369,7 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider block font-bold">ID MySQL: {selectedFeedback.id}</span>
-                <h4 className="text-base font-black text-slate-800 font-sans">{selectedFeedback.whatsapp_name}</h4>
+                <h4 className="text-base font-black text-slate-800 font-sans">{maskName(selectedFeedback.whatsapp_name)}</h4>
               </div>
               <button onClick={() => setSelectedFeedback(null)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
                 <X className="h-4 w-4" />
@@ -211,11 +379,11 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
             <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
               <div className="flex items-center gap-2 text-slate-600 font-semibold">
                 <Phone className="h-3.5 w-3.5 text-purple-600" />
-                <span className="font-mono">+{selectedFeedback.whatsapp_number}</span>
+                <span className="font-mono">{maskPhone(selectedFeedback.whatsapp_number)}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600 font-semibold">
                 <Calendar className="h-3.5 w-3.5 text-purple-600" />
-                <span>Enviado em: {selectedFeedback.data_envio}</span>
+                <span>Enviado em: {selectedFeedback.data_envio ?? '-'}</span>
               </div>
               <div className="flex items-center gap-2 pt-1.5 border-t border-slate-200 mt-1">
                 <span className="font-semibold text-slate-500 mr-2">Avaliado com:</span>
@@ -253,7 +421,13 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                   )}
 
                   <div className="bg-purple-100/70 text-purple-950 border border-purple-200 text-[11px] p-2.5 rounded-xl rounded-tr-none shadow-sm max-w-[85%] ml-auto font-sans">
-                    <p>{selectedFeedback.whatsapp_reply || defaultReplyTemplates[selectedFeedback.sentimento](selectedFeedback.whatsapp_name)}</p>
+                    <p>
+                      {selectedFeedback.whatsapp_reply ||
+                        defaultReplyTemplates[selectedFeedback.sentimento ?? 'neutro'](
+                          maskName(selectedFeedback.whatsapp_name) ?? 'Aluno',
+                          selectedFeedback.estrelas ?? 0
+                        )}
+                    </p>
                     <span className="text-[8px] text-purple-700 font-bold block mt-1.5 flex items-center justify-end gap-0.5 font-mono">
                       <span>✓✓ Enviado via n8n</span>
                     </span>
@@ -280,7 +454,7 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                       <span className="font-semibold text-slate-400">Para:</span> {selectedFeedback.email_to_professor || 'professor.coord@escola.com.br'}
                     </div>
                     <div className="truncate">
-                      <span className="font-semibold text-slate-400">Assunto:</span> {selectedFeedback.email_subject || `🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: ${selectedFeedback.whatsapp_name}`}
+                      <span className="font-semibold text-slate-400">Assunto:</span> {selectedFeedback.email_subject || `🔴 ALERTA - Aluno: ${maskName(selectedFeedback.whatsapp_name)}`}
                     </div>
                   </div>
                   <div className="p-3 bg-white font-mono text-[9px] text-slate-600 h-44 overflow-y-auto whitespace-pre-wrap leading-relaxed">{selectedFeedback.email_body || 'N/A'}</div>
