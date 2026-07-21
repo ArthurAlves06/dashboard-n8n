@@ -4,7 +4,8 @@ import MetricCards from './components/MetricCards.jsx';
 import ChartsSection from './components/ChartsSection.jsx';
 import InsightsSection from './components/InsightsSection.jsx';
 import FeedbackTable from './components/FeedbackTable.jsx';
-import { Network, RefreshCw, CheckCircle2, BarChart3, Database, Sparkles } from 'lucide-react';
+import AboutSection from './components/AboutSection.jsx';
+import { Network, CheckCircle2, BarChart3, Database, Sparkles, Info } from 'lucide-react';
 import { getFeedbacks, getMetrics } from './services/api.js';
 
 export default function App() {
@@ -30,18 +31,26 @@ export default function App() {
   };
 
   const loadDashboardData = async () => {
-    try {
-      const [feedbackData, metricData] = await Promise.all([getFeedbacks(), getMetrics()]);
+    // Usa allSettled para que feedbacks carreguem mesmo se métricas falharem
+    const [feedbackResult, metricResult] = await Promise.allSettled([
+      getFeedbacks(),
+      getMetrics(),
+    ]);
 
-      if (Array.isArray(feedbackData)) {
-        setFeedbacks(feedbackData);
-      }
-
-      setMetrics(Array.isArray(metricData) ? metricData[0] ?? null : metricData ?? null);
-      setLastAccessAt(new Date());
-    } catch (error) {
-      console.error(error);
+    if (feedbackResult.status === 'fulfilled' && Array.isArray(feedbackResult.value)) {
+      setFeedbacks(feedbackResult.value);
+    } else if (feedbackResult.status === 'rejected') {
+      console.error('Erro ao buscar feedbacks:', feedbackResult.reason);
     }
+
+    if (metricResult.status === 'fulfilled' && metricResult.value != null) {
+      const metricData = metricResult.value;
+      setMetrics(Array.isArray(metricData) ? metricData[0] ?? null : metricData ?? null);
+    } else if (metricResult.status === 'rejected') {
+      console.warn('Métricas indisponíveis (n8n offline), continuando sem elas.');
+    }
+
+    setLastAccessAt(new Date());
   };
 
   useEffect(() => {
@@ -139,12 +148,21 @@ export default function App() {
               }`}
             >
               <Database className="h-4 w-4" />
-              Base MySQL ({feedbacks.length})
+              Base de Dados ({feedbacks.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('about')}
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 ease-out flex items-center gap-2 cursor-pointer hover:-translate-y-0.5 hover:shadow-sm active:scale-95 ${
+                activeTab === 'about' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+              }`}
+            >
+              <Info className="h-4 w-4" />
+              Sobre o Projeto
             </button>
           </div>
 
           <div className="text-xs text-slate-500 font-medium">
-            Exibindo: <span className="font-bold text-slate-800">{activeTab === 'metrics' ? 'Indicadores & Gráficos Recharts' : activeTab === 'insights' ? 'Resumo executivo e próximos passos' : 'Banco de Dados MySQL de Feedbacks'}</span>
+            Exibindo: <span className="font-bold text-slate-800">{activeTab === 'metrics' ? 'Indicadores & Gráficos Recharts' : activeTab === 'insights' ? 'Resumo executivo e próximos passos' : activeTab === 'database' ? 'Banco de Dados de Feedbacks' : 'Arquitetura, Stack e Portfólio'}</span>
           </div>
         </div>
 
@@ -209,15 +227,16 @@ export default function App() {
             />
           </div>
         )}
+
+        {activeTab === 'about' && (
+          <AboutSection feedbacks={feedbacks} />
+        )}
       </main>
 
-      <footer className="mx-auto mt-12 flex max-w-[1600px] flex-col items-center justify-between gap-2 border-t border-slate-200 px-4 pb-12 pt-6 text-[11px] text-slate-500 sm:flex-row sm:px-6 lg:px-8">
-        <p className="font-semibold">© 2026 Feedback Monitor. Todos os direitos reservados.</p>
-        <div className="flex gap-4 items-center font-mono uppercase tracking-wider text-[9px] text-slate-400">
-          <span className="text-purple-600 font-bold">Automação Ativa</span>
-          <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
-          <span>Ambiente do Webhook</span>
-        </div>
+      <footer className="mx-auto mt-12 w-full border-t border-slate-200 px-4 pb-12 pt-6 text-[11px] text-slate-500 sm:px-6 lg:px-8">
+        <p className="text-center font-semibold text-slate-500">
+          Copyright © 2026 por <span className="text-purple-600 font-bold">Arthur</span> | Todos os direitos reservados.
+        </p>
       </footer>
     </div>
   );

@@ -1,5 +1,34 @@
 import { useState } from 'react';
-import { defaultReplyTemplates } from '../data/mockFeedbacks.js';
+
+// Templates de resposta usados como fallback quando whatsapp_reply não vem preenchido
+const defaultReplyTemplates = {
+  positivo: (name, estrelas = 0) =>
+    `Olá, ${name}! Muito obrigado pelo seu feedback positivo! Sentimento detectado: *Positivo* (${estrelas} estrela(s)). Continuaremos trabalhando para manter a qualidade. Obrigado!☺️`,
+  neutro: (name, estrelas = 0) =>
+    `Olá, ${name}! Recebemos seu feedback. Sentimento detectado: *Neutro* (${estrelas} estrela(s)). Obrigado por participar. Sua opinião nos ajuda a melhorar!☺️`,
+  negativo: (name, estrelas = 0) =>
+    `Olá, ${name}! Recebemos seu feedback. Identificamos que você está enfrentando dificuldades. Sentimento detectado: *Negativo* (${estrelas} estrela(s)). O professor foi notificado e entrará em contato em breve. Obrigado por nos avisar!`,
+};
+
+// Mascara número para proteção de dados (portfólio)
+// Ex: "5541999389379" → "55 ••••• ••379"
+function maskPhone(num) {
+  const s = String(num ?? '');
+  if (!s || s.length < 4) return '••••••';
+  const visible = s.slice(-3);
+  return s.slice(0, 2) + ' ••••• ••' + visible;
+}
+
+// Mascara nome completo para proteção de dados (portfólio)
+// Ex: "Weslley L. Kampa" → "Weslley K."
+function maskName(name) {
+  const s = String(name ?? '').trim();
+  if (!s || s === 'Sem nome') return s;
+  const parts = s.split(' ').filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  return parts[0] + ' ' + parts[parts.length - 1][0] + '.';
+}
+
 import { Search, FileDown, Eye, Mail, MessageSquare, Star, ArrowUpDown, X, Phone, Calendar, Trash, SlidersHorizontal } from 'lucide-react';
 
 export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSentiment, onClearSentiment, onFilterSentiment }) {
@@ -85,7 +114,7 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
     const rows = feedbacks
       .map((f) => {
         const cleanMsg = String(f.mensagem ?? '').replace(/"/g, '""').replace(/\n/g, ' ');
-        return `${f.id},${f.whatsapp_number},"${f.whatsapp_name ?? ''}","${cleanMsg}",${f.estrelas ?? ''},${f.sentimento ?? ''},${f.acao ?? ''},"${f.data_envio ?? ''}"`;
+        return `${f.id},${maskPhone(f.whatsapp_number)},"${maskName(f.whatsapp_name)}","${cleanMsg}",${f.estrelas ?? ''},${f.sentimento ?? ''},${f.acao ?? ''},"${f.data_envio ?? ''}"`;
       })
       .join('\n');
 
@@ -289,8 +318,8 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                       <td className="p-3.5 font-mono text-slate-400 font-extrabold">{f.id}</td>
                       <td className="p-3.5">
                         <div>
-                          <div className={`font-bold leading-tight ${isActive ? 'text-purple-800' : 'text-slate-800'}`}>{f.whatsapp_name ?? 'Sem nome'}</div>
-                          <div className="text-[10px] text-slate-500 font-mono tracking-wider mt-0.5">+{f.whatsapp_number ?? 'sem número'}</div>
+                          <div className={`font-bold leading-tight ${isActive ? 'text-purple-800' : 'text-slate-800'}`}>{maskName(f.whatsapp_name) ?? 'Sem nome'}</div>
+                          <div className="text-[10px] text-slate-500 font-mono tracking-wider mt-0.5">{maskPhone(f.whatsapp_number)}</div>
                         </div>
                       </td>
                       <td className="p-3.5 max-w-[180px] truncate italic text-slate-600" title={f.mensagem}>
@@ -318,11 +347,6 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                           <button onClick={() => setSelectedFeedback(f)} className="p-1 rounded text-slate-500 hover:text-purple-600 hover:bg-purple-50 transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95" title="Visualizar Respostas Executadas">
                             <Eye className="h-4 w-4" />
                           </button>
-                          {onRemoveFeedback && (
-                            <button onClick={() => onRemoveFeedback(f.id)} className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95" title="Deletar Registro">
-                              <Trash className="h-4 w-4" />
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -345,7 +369,7 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider block font-bold">ID MySQL: {selectedFeedback.id}</span>
-                <h4 className="text-base font-black text-slate-800 font-sans">{selectedFeedback.whatsapp_name}</h4>
+                <h4 className="text-base font-black text-slate-800 font-sans">{maskName(selectedFeedback.whatsapp_name)}</h4>
               </div>
               <button onClick={() => setSelectedFeedback(null)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
                 <X className="h-4 w-4" />
@@ -355,7 +379,7 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
             <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
               <div className="flex items-center gap-2 text-slate-600 font-semibold">
                 <Phone className="h-3.5 w-3.5 text-purple-600" />
-                <span className="font-mono">+{selectedFeedback.whatsapp_number ?? 'sem número'}</span>
+                <span className="font-mono">{maskPhone(selectedFeedback.whatsapp_number)}</span>
               </div>
               <div className="flex items-center gap-2 text-slate-600 font-semibold">
                 <Calendar className="h-3.5 w-3.5 text-purple-600" />
@@ -400,7 +424,7 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                     <p>
                       {selectedFeedback.whatsapp_reply ||
                         defaultReplyTemplates[selectedFeedback.sentimento ?? 'neutro'](
-                          selectedFeedback.whatsapp_name ?? 'Aluno',
+                          maskName(selectedFeedback.whatsapp_name) ?? 'Aluno',
                           selectedFeedback.estrelas ?? 0
                         )}
                     </p>
@@ -430,7 +454,7 @@ export default function FeedbackTable({ feedbacks, onRemoveFeedback, selectedSen
                       <span className="font-semibold text-slate-400">Para:</span> {selectedFeedback.email_to_professor || 'professor.coord@escola.com.br'}
                     </div>
                     <div className="truncate">
-                      <span className="font-semibold text-slate-400">Assunto:</span> {selectedFeedback.email_subject || `🔴 ALERTA DE FEEDBACK NEGATIVO - Aluno: ${selectedFeedback.whatsapp_name}`}
+                      <span className="font-semibold text-slate-400">Assunto:</span> {selectedFeedback.email_subject || `🔴 ALERTA - Aluno: ${maskName(selectedFeedback.whatsapp_name)}`}
                     </div>
                   </div>
                   <div className="p-3 bg-white font-mono text-[9px] text-slate-600 h-44 overflow-y-auto whitespace-pre-wrap leading-relaxed">{selectedFeedback.email_body || 'N/A'}</div>

@@ -109,14 +109,18 @@ async function saveFeedbacksToFirestore(feedbacks, source = 'n8n') {
 
   const batch = db.batch();
   const now = FieldValue.serverTimestamp();
+  const ids = [];
 
   list.forEach((feedback) => {
     const normalized = normalizeFeedbackRecord(feedback, source);
     const docRef = db.collection(FIRESTORE_COLLECTION).doc(normalized.id);
+    ids.push(normalized.id);
     batch.set(docRef, { ...normalized, createdAt: now }, { merge: true });
   });
 
   await batch.commit();
+  console.log(`Firestore: saved ${ids.length} feedback(s) to collection '${FIRESTORE_COLLECTION}' (ids: ${ids.join(', ')})`);
+  return ids;
 }
 
 async function startServer() {
@@ -126,41 +130,84 @@ async function startServer() {
 
   app.use(express.json());
 
-  async function proxyJson(targetPath, res) {
-    const response = await fetch(`${N8N_BASE}${targetPath}`, {
-      headers: {
-        'ngrok-skip-browser-warning': 'true',
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar ${targetPath}`);
-    }
-
-    const data = await response.json();
-    if (targetPath === '/dashboard-feedbacks') {
-      saveFeedbacksToFirestore(data, 'dashboard-sync').catch((err) => {
-        console.error('Firestore sync error:', err);
-      });
-    }
-    res.json(data);
-  }
 
   app.get('/api/feedbacks', async (_req, res) => {
+    const db = getFirestoreDb();
+
+    // Helper: busca dados do Firestore
+    async function fetchFromFirestore() {
+      if (!db) return [];
+      try {
+        const snapshot = await db.collection(FIRESTORE_COLLECTION)
+          .orderBy('data_envio', 'desc')
+          .limit(500)
+          .get();
+        return snapshot.docs.map((d) => d.data());
+      } catch (dbErr) {
+        console.error('Firestore read error:', dbErr);
+        return [];
+      }
+    }
+
     try {
-      await proxyJson('/dashboard-feedbacks', res);
+      // Tenta buscar do n8n com timeout de 8 segundos
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch(`${N8N_BASE}/dashboard-feedbacks`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : [data];
+
+        // Salva no Firestore em background
+        saveFeedbacksToFirestore(list, 'dashboard-sync').catch((err) => {
+          console.error('Firestore sync error:', err);
+        });
+
+        return res.json(list);
+      }
+
+      throw new Error(`n8n retornou status ${response.status}`);
     } catch (err) {
-      console.error('API feedbacks proxy error:', err);
-      res.status(500).json({ error: err?.message || 'Erro ao buscar feedbacks' });
+      console.warn('n8n indisponível, usando Firestore como fonte:', err?.message);
+
+      // n8n offline → retorna dados salvos no Firestore
+      const docs = await fetchFromFirestore();
+
+      if (docs.length > 0) {
+        console.log(`Firestore: retornando ${docs.length} feedback(s) para o dashboard.`);
+        return res.json(docs);
+      }
+
+      return res.status(503).json({ error: 'n8n indisponível e nenhum dado no Firestore ainda.' });
     }
   });
 
   app.get('/api/metrics', async (_req, res) => {
     try {
-      await proxyJson('/dashboard-metrics', res);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch(`${N8N_BASE}/dashboard-metrics`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) throw new Error(`n8n retornou status ${response.status}`);
+
+      const data = await response.json();
+      return res.json(data);
     } catch (err) {
-      console.error('API metrics proxy error:', err);
-      res.status(500).json({ error: err?.message || 'Erro ao buscar métricas' });
+      console.warn('Métricas indisponíveis (n8n offline):', err?.message);
+      // Retorna null em vez de 500 para não quebrar o dashboard
+      return res.json(null);
     }
   });
 
@@ -275,6 +322,18 @@ async function startServer() {
     } catch (err) {
       console.error('API error details:', err);
       res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
+    }
+  });
+
+  // Receive webhook posts from n8n (or any webhook sender) and persist to Firestore immediately
+  app.post('/api/webhook', async (req, res) => {
+    try {
+      const payload = req.body ?? {};
+      const ids = await saveFeedbacksToFirestore(payload, 'n8n-webhook');
+      res.json({ success: true, savedIds: ids ?? [] });
+    } catch (err) {
+      console.error('Webhook save error:', err);
+      res.status(500).json({ success: false, error: err?.message || 'Erro ao salvar webhook' });
     }
   });
 
